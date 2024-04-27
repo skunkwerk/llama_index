@@ -22,6 +22,15 @@ embedding_retry_decorator = create_retry_decorator(
     max_seconds=20,
 )
 
+from aiolimiter import AsyncLimiter
+
+limiter = AsyncLimiter(1000000) # 1M tokens/minute
+
+def num_tokens_from_string(string: str, encoding_name: str) -> int:
+    """Returns the number of tokens in a text string."""
+    encoding = tiktoken.get_encoding('cl100k_base')
+    num_tokens = len(encoding.encode(string))
+    return num_tokens
 
 class OpenAIEmbeddingMode(str, Enum):
     """OpenAI embedding mode."""
@@ -130,7 +139,8 @@ def get_embedding(client: OpenAI, text: str, engine: str, **kwargs: Any) -> List
 
     """
     text = text.replace("\n", " ")
-
+    tokens = num_tokens_from_string(text)
+    print(f'num tokens: {tokens}')
     return (
         client.embeddings.create(input=[text], model=engine, **kwargs).data[0].embedding
     )
@@ -150,7 +160,9 @@ async def aget_embedding(
 
     """
     text = text.replace("\n", " ")
-
+    tokens = num_tokens_from_string(text)
+    print(f'num tokens: {tokens}')
+    await limit.acquire(tokens)
     return (
         (await aclient.embeddings.create(input=[text], model=engine, **kwargs))
         .data[0]
@@ -174,7 +186,8 @@ def get_embeddings(
     assert len(list_of_text) <= 2048, "The batch size should not be larger than 2048."
 
     list_of_text = [text.replace("\n", " ") for text in list_of_text]
-
+    tokens = sum([num_tokens_from_string(string) for string in list_of_text])
+    print(f'num tokens: {tokens}')
     data = client.embeddings.create(input=list_of_text, model=engine, **kwargs).data
     return [d.embedding for d in data]
 
@@ -198,7 +211,9 @@ async def aget_embeddings(
     assert len(list_of_text) <= 2048, "The batch size should not be larger than 2048."
 
     list_of_text = [text.replace("\n", " ") for text in list_of_text]
-
+    tokens = sum([num_tokens_from_string(string) for string in list_of_text])
+    print(f'num tokens: {tokens}')
+    await limit.acquire(tokens)
     data = (
         await aclient.embeddings.create(input=list_of_text, model=engine, **kwargs)
     ).data

@@ -152,7 +152,7 @@ async def aget_embedding(
 
     """
     text = text.replace("\n", " ")
-
+    print('modified')
     return (
         (await aclient.embeddings.create(input=[text], model=engine, **kwargs))
         .data[0]
@@ -198,7 +198,7 @@ async def aget_embeddings(
 
     """
     assert len(list_of_text) <= 2048, "The batch size should not be larger than 2048."
-
+    print('modified')
     list_of_text = [text.replace("\n", " ") for text in list_of_text]
 
     data = (

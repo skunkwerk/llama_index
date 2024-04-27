@@ -24,6 +24,7 @@ class TogetherEmbedding(BaseEmbedding):
         model_name: str,
         api_key: Optional[str] = None,
         api_base: str = "https://api.together.xyz/v1",
+        timeout: int = 60,
         **kwargs: Any,
     ) -> None:
         api_key = api_key or os.environ.get("TOGETHER_API_KEY", None)
@@ -31,6 +32,7 @@ class TogetherEmbedding(BaseEmbedding):
             model_name=model_name,
             api_key=api_key,
             api_base=api_base,
+            timeout=timeout,
             **kwargs,
         )
 
@@ -55,6 +57,7 @@ class TogetherEmbedding(BaseEmbedding):
             self.api_base.strip("/") + "/embeddings",
             headers=headers,
             json={"input": text, "model": model_api_string},
+            timeout=timeout
         )
         if response.status_code != 200:
             raise ValueError(
@@ -84,6 +87,7 @@ class TogetherEmbedding(BaseEmbedding):
                 self.api_base.strip("/") + "/embeddings",
                 headers=headers,
                 json={"input": text, "model": model_api_string},
+                timeout=self.timeout
             )
             if response.status_code != 200:
                 raise ValueError(
